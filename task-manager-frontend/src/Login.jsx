@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import './index.css'  // <--- ¡Esta línea es el puente!
 
-function Login({ onLoginSuccess }) {
+function Login({ onLoginSuccess, onSwitchToRegister }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -78,6 +79,15 @@ function Login({ onLoginSuccess }) {
               Iniciar Sesión
             </button>
           </div>
+          <div className="mt-4">
+      <button
+        type="button" // Importante que sea type="button" para que no envíe el form de login
+        onClick={onSwitchToRegister}
+        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors shadow-lg"
+      >
+        Regístrate
+      </button>
+    </div>
         </form>
       </div>
     </div>

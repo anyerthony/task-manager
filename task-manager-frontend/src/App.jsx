@@ -1,14 +1,27 @@
 import { useState, useEffect } from 'react';
 import Login from './Login';
-import './index.css'  // <--- ¡Esta línea es el puente!
+import Register from './Register';
+import './index.css';
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // 1. Efecto para cargar tareas automáticamente al loguear
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchTasks();
+    } else {
+      setTasks([]); // Limpiar tareas al cerrar sesión
+    }
+  }, [isLoggedIn]);
 
   const fetchTasks = async () => {
     const token = localStorage.getItem('token');
+    if (!token) return; 
     try {
       const response = await fetch('http://localhost:3000/api/tasks', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -21,10 +34,6 @@ function App() {
       console.error("Error:", error);
     }
   };
-
-  useEffect(() => {
-    if (isLoggedIn) fetchTasks();
-  }, [isLoggedIn]);
 
   const addTask = async (e) => {
     e.preventDefault();
@@ -61,13 +70,34 @@ function App() {
     fetchTasks();
   };
 
-  const handleLogout = () => {
+ const handleLogout = () => {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
+    setIsRegistering(false); // Resetear por si acaso
   };
 
-  if (!isLoggedIn) return <Login onLoginSuccess={() => setIsLoggedIn(true)} />;
+  // Filtrado de tareas
+  const filteredTasks = tasks.filter(task => 
+    task.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
+  // 2. RENDERIZADO CONDICIONAL ÚNICO
+  // Si NO está logueado, decidimos entre Login o Register
+  if (!isLoggedIn) {
+    return isRegistering ? (
+      <Register 
+        onRegisterSuccess={() => setIsRegistering(false)} 
+        onSwitchToLogin={() => setIsRegistering(false)} 
+      />
+    ) : (
+      <Login 
+        onLoginSuccess={() => setIsLoggedIn(true)} 
+        onSwitchToRegister={() => setIsRegistering(true)} 
+      />
+    );
+  }
+
+  // 3. Si SÍ está logueado, mostramos el Dashboard
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
@@ -81,6 +111,10 @@ function App() {
             Cerrar Sesión
           </button>
         </div>
+
+        <p className="text-gray-500 text-sm mb-6">
+          Tienes <span className="font-bold text-blue-600">{tasks.filter(t => !t.completed).length}</span> tareas pendientes de {tasks.length} en total.
+        </p>
 
         {/* Formulario */}
         <form onSubmit={addTask} className="flex gap-2 mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -97,9 +131,26 @@ function App() {
           </button>
         </form>
 
+        {/* Buscador */}
+        <div className="mb-6">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input 
+              type="text" 
+              placeholder="Filtrar tareas..." 
+              className="pl-10 w-full p-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
         {/* Lista de Tareas */}
         <div className="space-y-3">
-          {tasks.map(task => (
+          {filteredTasks.map(task => (
             <div key={task._id} className={`flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border-l-4 transition-all ${task.completed ? 'border-green-400 opacity-75' : 'border-blue-500'}`}>
               <div className="flex items-center gap-3">
                 <input 
